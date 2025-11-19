@@ -1,10 +1,13 @@
+
 import React, { useState, useCallback, useRef } from 'react';
-import { Upload, FileText, Shuffle, Download, Loader2, AlertCircle, Image as ImageIcon, ArrowRight, File, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Upload, FileText, Shuffle, Download, Loader2, AlertCircle, Image as ImageIcon, ArrowRight, File, CheckCircle2, ChevronDown, PlayCircle } from 'lucide-react';
 import { convertPdfToImages, getPdfPageCount, getSinglePdfPage } from './services/pdfService';
 import { extractQuestionsFromImage } from './services/geminiService';
 import { generateExamDocument } from './services/wordService';
 import { StepIndicator } from './components/StepIndicator';
 import { QuestionCard } from './components/QuestionCard';
+import { ExamMode } from './components/ExamMode';
+import { ExamResult } from './components/ExamResult';
 import { AppState, RawQuestion, ProcessedQuestion, ProcessedOption } from './types';
 
 const App: React.FC = () => {
@@ -18,6 +21,9 @@ const App: React.FC = () => {
   const [previews, setPreviews] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
   const [loadingPreview, setLoadingPreview] = useState<{ start: boolean; end: boolean }>({ start: false, end: false });
   
+  // Exam State
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper to shuffle array
@@ -198,8 +204,55 @@ const App: React.FC = () => {
       setProcessedQuestions(reshuffled);
   };
 
+  // --- EXAM HANDLERS ---
+
+  const handleStartExam = () => {
+      setUserAnswers({});
+      setAppState(AppState.TAKE_EXAM);
+  };
+
+  const handleFinishExam = (answers: Record<string, string>) => {
+      setUserAnswers(answers);
+      setAppState(AppState.EXAM_RESULTS);
+      window.scrollTo(0,0);
+  };
+
+  const handleCancelExam = () => {
+      setAppState(AppState.REVIEW);
+  };
+
+  const handleRetryExam = () => {
+      setUserAnswers({});
+      handleReshuffle(); // Shuffle again for a new attempt
+      setAppState(AppState.TAKE_EXAM);
+      window.scrollTo(0,0);
+  };
+
+  // --- RENDER CONTENT ---
+
+  if (appState === AppState.TAKE_EXAM) {
+      return (
+          <ExamMode 
+            questions={processedQuestions} 
+            onFinish={handleFinishExam}
+            onCancel={handleCancelExam}
+          />
+      );
+  }
+
+  if (appState === AppState.EXAM_RESULTS) {
+      return (
+          <ExamResult 
+            questions={processedQuestions} 
+            userAnswers={userAnswers}
+            onRetry={handleRetryExam}
+            onBackToMenu={() => setAppState(AppState.REVIEW)}
+          />
+      );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-20">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -213,7 +266,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-10">
+      <main className="max-w-5xl mx-auto px-4 py-10 w-full flex-grow">
         
         <div className="mb-10">
             <StepIndicator currentStep={
@@ -431,31 +484,40 @@ const App: React.FC = () => {
         {(appState === AppState.REVIEW || appState === AppState.GENERATING_DOC) && (
           <div className="space-y-6">
             
-            <div className="bg-indigo-900 rounded-2xl p-6 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-20 z-20">
-              <div>
+            <div className="bg-indigo-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 sticky top-20 z-20">
+              <div className="text-center md:text-left">
                 <h2 className="text-2xl font-bold">Dışa Aktarmaya Hazır!</h2>
                 <p className="text-indigo-200 text-sm mt-1">
                   {processedQuestions.length} soru ayıklandı ve karıştırıldı.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                 <button 
                     onClick={handleReshuffle}
-                    className="px-4 py-2 bg-indigo-800 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors border border-indigo-700"
+                    className="px-4 py-2 bg-indigo-800 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors border border-indigo-700 whitespace-nowrap"
                 >
                     Tekrar Karıştır
                 </button>
                 
+                {/* TAKE EXAM BUTTON */}
+                <button
+                    onClick={handleStartExam}
+                    className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-colors shadow-lg flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                    <PlayCircle className="h-5 w-5" />
+                    Sınavı Çöz
+                </button>
+
                 {/* DOCX Download */}
                 <button
                   onClick={handleDocxDownload}
                   disabled={appState === AppState.GENERATING_DOC}
-                  className="px-6 py-2 bg-white text-indigo-900 hover:bg-indigo-50 rounded-lg font-bold transition-colors shadow-lg flex items-center gap-2 disabled:opacity-70"
+                  className="px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 rounded-lg font-bold transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 whitespace-nowrap"
                 >
                   {appState === AppState.GENERATING_DOC ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <Download className="h-4 w-4" />
+                    <Download className="h-5 w-5" />
                   )}
                   Word İndir
                 </button>
@@ -463,7 +525,7 @@ const App: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-700 ml-1">Önizleme</h3>
+                <h3 className="text-lg font-semibold text-slate-700 ml-1">Önizleme (Cevap Anahtarlı)</h3>
                 {processedQuestions.map((q) => (
                     <QuestionCard key={q.id} question={q} />
                 ))}
@@ -471,6 +533,10 @@ const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      <footer className="py-6 text-center text-slate-400 text-sm font-medium">
+        Designed by Berke Kula
+      </footer>
     </div>
   );
 };
