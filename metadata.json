@@ -1,0 +1,5 @@
+{
+  "name": "Sınav Şık Karıştırma Aracı",
+  "description": "Doğru cevabın hep 'A' olduğu geçmiş sınav PDF'lerini yükleyin. Bu araç soruları yapay zeka ile ayrıştırır, şıkları karıştırır ve pratik yapmanız için yeni bir Word belgesi oluşturur.",
+  "requestFramePermissions": []
+}
