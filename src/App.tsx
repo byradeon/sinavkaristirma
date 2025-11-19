@@ -1,6 +1,6 @@
 
-import React, { useState, useCallback, useRef } from 'react';
-import { Upload, FileText, Shuffle, Download, Loader2, AlertCircle, Image as ImageIcon, ArrowRight, File, CheckCircle2, ChevronDown, PlayCircle } from 'lucide-react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { Upload, FileText, Shuffle, Download, Loader2, AlertCircle, Image as ImageIcon, ArrowRight, File, CheckCircle2, ChevronDown, PlayCircle, Moon, Sun } from 'lucide-react';
 import { convertPdfToImages, getPdfPageCount, getSinglePdfPage } from './services/pdfService';
 import { extractQuestionsFromImage } from './services/geminiService';
 import { generateExamDocument } from './services/wordService';
@@ -21,10 +21,22 @@ const App: React.FC = () => {
   const [previews, setPreviews] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
   const [loadingPreview, setLoadingPreview] = useState<{ start: boolean; end: boolean }>({ start: false, end: false });
   
+  // Theme State
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+
   // Exam State
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle Dark Mode Effect
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   // Helper to shuffle array
   const shuffleArray = <T,>(array: T[]): T[] => {
@@ -252,16 +264,23 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shuffle className="h-6 w-6 text-indigo-600" />
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Sınav Şık Karıştırma Aracı</h1>
+            <Shuffle className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Sınav Şık Karıştırma Aracı</h1>
           </div>
-          <div className="text-sm text-slate-500">
-            Gemini 2.5 Flash ile güçlendirilmiştir
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              aria-label="Toggle Dark Mode"
+            >
+              <span className="text-sm font-medium">Gece Modu</span>
+              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
           </div>
         </div>
       </header>
@@ -279,22 +298,22 @@ const App: React.FC = () => {
 
         {/* Error Alert */}
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-r-lg animate-in fade-in slide-in-from-top-2">
+          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-8 rounded-r-lg animate-in fade-in slide-in-from-top-2">
             <div className="flex items-center">
               <AlertCircle className="h-5 w-5 text-red-500 mr-3" />
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
             </div>
           </div>
         )}
 
         {/* IDLE STATE - Upload */}
         {appState === AppState.IDLE && (
-          <div className="flex flex-col items-center justify-center py-12 bg-white rounded-3xl shadow-sm border border-dashed border-slate-300">
-            <div className="bg-indigo-50 p-4 rounded-full mb-4">
-              <Upload className="h-8 w-8 text-indigo-600" />
+          <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-dashed border-slate-300 dark:border-slate-700 transition-colors duration-300">
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-full mb-4">
+              <Upload className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
             </div>
-            <h2 className="text-2xl font-semibold text-slate-900 mb-2">Sınav PDF'ini Yükle</h2>
-            <p className="text-slate-500 text-center max-w-md mb-8">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">Sınav PDF'ini Yükle</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-center max-w-md mb-8">
               Soruların bulunduğu PDF dosyasını yükleyin. Sistem, kaynak dosyadaki ilk şıkkın (A) her zaman doğru cevap olduğunu varsayar.
             </p>
             
@@ -307,7 +326,7 @@ const App: React.FC = () => {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-medium rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
             >
               <FileText className="h-5 w-5" />
               PDF Dosyası Seç
@@ -317,21 +336,21 @@ const App: React.FC = () => {
 
         {/* FILE SELECTED STATE - Configure */}
         {appState === AppState.FILE_SELECTED && selectedFile && (
-          <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
-            <div className="bg-indigo-50 px-8 py-6 border-b border-indigo-100 flex items-center gap-4">
-              <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm">
+          <div className="max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-100 dark:border-slate-700 overflow-hidden transition-colors duration-300">
+            <div className="bg-indigo-50 dark:bg-slate-700 px-8 py-6 border-b border-indigo-100 dark:border-slate-600 flex items-center gap-4 transition-colors duration-300">
+              <div className="h-12 w-12 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm">
                 <File className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-indigo-900">{selectedFile.name}</h2>
-                <p className="text-indigo-600 text-sm">{pageRange.total} Sayfa Algılandı</p>
+                <h2 className="text-lg font-bold text-indigo-900 dark:text-indigo-100">{selectedFile.name}</h2>
+                <p className="text-indigo-600 dark:text-indigo-300 text-sm">{pageRange.total} Sayfa Algılandı</p>
               </div>
             </div>
             
             <div className="p-8 space-y-8">
               {/* Page Range Selection */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-3">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
                   İşlenecek Sayfa Aralığını Seçin
                 </label>
                 
@@ -343,7 +362,7 @@ const App: React.FC = () => {
                       <select 
                         value={pageRange.start}
                         onChange={(e) => handlePageChange('start', parseInt(e.target.value))}
-                        className="w-full pl-24 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white appearance-none cursor-pointer text-slate-700 font-medium transition-shadow"
+                        className="w-full pl-24 pr-10 py-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white dark:bg-slate-700 appearance-none cursor-pointer text-slate-700 dark:text-slate-200 font-medium transition-all"
                       >
                         {Array.from({ length: pageRange.total }, (_, i) => i + 1).map(num => (
                             <option key={num} value={num}>Sayfa {num}</option>
@@ -353,7 +372,7 @@ const App: React.FC = () => {
                     </div>
                     
                     {/* Start Preview Image */}
-                    <div className="w-full h-48 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden relative flex items-center justify-center">
+                    <div className="w-full h-48 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden relative flex items-center justify-center transition-colors">
                       {loadingPreview.start ? (
                         <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
                       ) : previews.start ? (
@@ -376,7 +395,7 @@ const App: React.FC = () => {
                       <select 
                         value={pageRange.end}
                         onChange={(e) => handlePageChange('end', parseInt(e.target.value))}
-                        className="w-full pl-16 pr-10 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white appearance-none cursor-pointer text-slate-700 font-medium transition-shadow"
+                        className="w-full pl-16 pr-10 py-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white dark:bg-slate-700 appearance-none cursor-pointer text-slate-700 dark:text-slate-200 font-medium transition-all"
                       >
                          {Array.from({ length: pageRange.total }, (_, i) => i + 1).map(num => (
                             <option key={num} value={num}>Sayfa {num}</option>
@@ -386,7 +405,7 @@ const App: React.FC = () => {
                     </div>
 
                      {/* End Preview Image */}
-                     <div className="w-full h-48 bg-slate-100 rounded-lg border border-slate-200 overflow-hidden relative flex items-center justify-center">
+                     <div className="w-full h-48 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden relative flex items-center justify-center transition-colors">
                       {loadingPreview.end ? (
                         <Loader2 className="h-6 w-6 text-indigo-400 animate-spin" />
                       ) : previews.end ? (
@@ -403,26 +422,26 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-500 mt-2 text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
                   {pageRange.end >= pageRange.start ? `Toplam ${pageRange.end - pageRange.start + 1} sayfa işlenecek.` : 'Geçersiz aralık: Başlangıç sayfası bitiş sayfasından büyük olamaz.'}
                 </p>
               </div>
 
               {/* Include Images Toggle */}
-              <div className="bg-slate-50 rounded-xl border border-slate-100 p-4">
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-100 dark:border-slate-700 p-4 transition-colors">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${includeImages ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200 text-slate-500'}`}>
+                    <div className={`p-2 rounded-lg ${includeImages ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-400'}`}>
                        <ImageIcon className="h-5 w-5" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-slate-700">Görselleri Dahil Et</span>
-                      <span className="text-xs text-slate-500">Diyagramları, tabloları ve şekilleri ayıkla</span>
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Görselleri Dahil Et</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Diyagramları, tabloları ve şekilleri ayıkla</span>
                     </div>
                   </div>
                   <button 
                     onClick={() => setIncludeImages(!includeImages)}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${includeImages ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${includeImages ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                     role="switch"
                     aria-checked={includeImages}
                   >
@@ -434,7 +453,7 @@ const App: React.FC = () => {
                 </div>
                 
                 {/* Disclaimer Note */}
-                <div className="mt-3 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-100">
+                <div className="mt-3 flex items-start gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 p-2.5 rounded-lg border border-amber-100 dark:border-amber-900/30">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <p>Görsel ayıklama işlemi şu an beta aşamasındadır. Görseller hatalı olarak ayıklanabilir. Kendiniz kontrol etmeye özen gösterin ve her görsele güvenmeyin.</p>
                 </div>
@@ -447,13 +466,13 @@ const App: React.FC = () => {
                     setAppState(AppState.IDLE);
                     setSelectedFile(null);
                   }}
-                  className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors"
+                  className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium rounded-xl transition-colors"
                 >
                   İptal
                 </button>
                 <button
                   onClick={handleStartProcessing}
-                  className="flex-[2] px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="flex-[2] px-6 py-3 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   İşlemi Başlat
                   <ArrowRight className="h-5 w-5" />
@@ -467,13 +486,13 @@ const App: React.FC = () => {
         {appState === AppState.PROCESSING && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="relative">
-                <div className="h-24 w-24 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin"></div>
+                <div className="h-24 w-24 rounded-full border-4 border-indigo-100 dark:border-indigo-900/30 border-t-indigo-600 dark:border-t-indigo-500 animate-spin"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-indigo-700 font-bold">{Math.round((progress.current / Math.max(progress.total, 1)) * 100)}%</span>
+                    <span className="text-indigo-700 dark:text-indigo-300 font-bold">{Math.round((progress.current / Math.max(progress.total, 1)) * 100)}%</span>
                 </div>
             </div>
-            <h3 className="text-xl font-medium text-slate-900 mt-6">Sınav Sayfaları Analiz Ediliyor...</h3>
-            <p className="text-slate-500 mt-2 text-center">
+            <h3 className="text-xl font-medium text-slate-900 dark:text-white mt-6">Sınav Sayfaları Analiz Ediliyor...</h3>
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-center">
                Sayfa {progress.current} / {progress.total} <br/>
                {includeImages ? 'Yapay zeka ile sorular ayıklanıyor ve diyagramlar kırpılıyor.' : 'Sadece metinler ayıklanıyor.'}
             </p>
@@ -484,7 +503,7 @@ const App: React.FC = () => {
         {(appState === AppState.REVIEW || appState === AppState.GENERATING_DOC) && (
           <div className="space-y-6">
             
-            <div className="bg-indigo-900 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 sticky top-20 z-20">
+            <div className="bg-indigo-900 dark:bg-indigo-950 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 sticky top-20 z-20 transition-colors">
               <div className="text-center md:text-left">
                 <h2 className="text-2xl font-bold">Dışa Aktarmaya Hazır!</h2>
                 <p className="text-indigo-200 text-sm mt-1">
@@ -494,7 +513,7 @@ const App: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                 <button 
                     onClick={handleReshuffle}
-                    className="px-4 py-2 bg-indigo-800 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors border border-indigo-700 whitespace-nowrap"
+                    className="px-4 py-2 bg-indigo-800 hover:bg-indigo-700 dark:bg-indigo-900 dark:hover:bg-indigo-800 rounded-lg text-sm font-medium transition-colors border border-indigo-700 whitespace-nowrap"
                 >
                     Tekrar Karıştır
                 </button>
@@ -502,7 +521,7 @@ const App: React.FC = () => {
                 {/* TAKE EXAM BUTTON */}
                 <button
                     onClick={handleStartExam}
-                    className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-colors shadow-lg flex items-center justify-center gap-2 whitespace-nowrap"
+                    className="px-6 py-3 bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white rounded-lg font-bold transition-colors shadow-lg flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                     <PlayCircle className="h-5 w-5" />
                     Sınavı Çöz
@@ -512,7 +531,7 @@ const App: React.FC = () => {
                 <button
                   onClick={handleDocxDownload}
                   disabled={appState === AppState.GENERATING_DOC}
-                  className="px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 rounded-lg font-bold transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 whitespace-nowrap"
+                  className="px-6 py-3 bg-white text-indigo-900 hover:bg-indigo-50 dark:bg-slate-800 dark:text-indigo-300 dark:hover:bg-slate-700 rounded-lg font-bold transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 whitespace-nowrap"
                 >
                   {appState === AppState.GENERATING_DOC ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -525,7 +544,7 @@ const App: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-700 ml-1">Önizleme (Cevap Anahtarlı)</h3>
+                <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 ml-1">Önizleme (Cevap Anahtarlı)</h3>
                 {processedQuestions.map((q) => (
                     <QuestionCard key={q.id} question={q} />
                 ))}
@@ -534,7 +553,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="py-6 text-center text-slate-400 text-sm font-medium">
+      <footer className="py-6 text-center text-slate-400 dark:text-slate-500 text-sm font-medium">
         Designed by Berke Kula
       </footer>
     </div>
