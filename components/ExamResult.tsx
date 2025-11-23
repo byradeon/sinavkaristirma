@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ProcessedQuestion } from '../types';
-import { Check, X, RefreshCw, ArrowLeft } from 'lucide-react';
+import { Check, X, RefreshCw, ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { generateExamDocument } from '../services/wordService';
 
 interface ExamResultProps {
   questions: ProcessedQuestion[];
@@ -11,9 +12,19 @@ interface ExamResultProps {
 }
 
 export const ExamResult: React.FC<ExamResultProps> = ({ questions, userAnswers, onRetry, onBackToMenu }) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+
   let correctCount = 0;
   let wrongCount = 0;
   let emptyCount = 0;
+
+  // Identify wrong or empty questions for the "Mistake Review" document
+  const mistakeQuestions = questions.filter(q => {
+    const userAnswerId = userAnswers[q.id];
+    if (!userAnswerId) return true; // Empty
+    const correctOption = q.options.find(o => o.isCorrect);
+    return userAnswerId !== correctOption?.id; // Wrong
+  });
 
   questions.forEach(q => {
     const userAnswerId = userAnswers[q.id];
@@ -32,26 +43,66 @@ export const ExamResult: React.FC<ExamResultProps> = ({ questions, userAnswers, 
   const total = questions.length;
   const score = Math.round((correctCount / total) * 100);
 
+  const handleDownloadMistakes = async () => {
+    if (mistakeQuestions.length === 0) return;
+    
+    setIsGenerating(true);
+    try {
+      const blob = await generateExamDocument(mistakeQuestions);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Hata_Analizi_${new Date().toISOString().slice(0,10)}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Belge oluşturulamadı", e);
+      alert("Hata raporu oluşturulurken bir sorun oluştu.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20 transition-colors duration-300">
       {/* Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <button 
                 onClick={onBackToMenu}
-                className="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium transition-colors"
+                className="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white font-medium transition-colors self-start sm:self-auto"
             >
                 <ArrowLeft className="h-5 w-5" />
                 Ana Menüye Dön
             </button>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Sınav Sonucu</h1>
-            <button 
-                onClick={onRetry}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/70 rounded-lg font-medium transition-colors"
-            >
-                <RefreshCw className="h-4 w-4" />
-                Tekrar Çöz
-            </button>
+            
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white hidden sm:block">Sınav Sonucu</h1>
+            
+            <div className="flex items-center gap-3 self-end sm:self-auto">
+                {mistakeQuestions.length > 0 && (
+                  <button
+                    onClick={handleDownloadMistakes}
+                    disabled={isGenerating}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg font-medium transition-colors disabled:opacity-70"
+                    title="Yanlış ve boş soruları Word olarak indir"
+                  >
+                    {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    <span className="hidden sm:inline">Hataları İndir</span>
+                    <span className="sm:hidden">Hatalar</span>
+                  </button>
+                )}
+
+                <button 
+                    onClick={onRetry}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/70 rounded-lg font-medium transition-colors"
+                >
+                    <RefreshCw className="h-4 w-4" />
+                    <span className="hidden sm:inline">Tekrar Çöz</span>
+                    <span className="sm:hidden">Tekrar</span>
+                </button>
+            </div>
         </div>
       </div>
 
@@ -80,7 +131,14 @@ export const ExamResult: React.FC<ExamResultProps> = ({ questions, userAnswers, 
             </div>
         </div>
 
-        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 ml-1">Soru Analizi</h3>
+        <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white ml-1">Soru Analizi</h3>
+            {mistakeQuestions.length > 0 && (
+                <span className="text-sm text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                    {mistakeQuestions.length} hatalı soru tespit edildi
+                </span>
+            )}
+        </div>
 
         {/* Questions Analysis */}
         <div className="space-y-6">
